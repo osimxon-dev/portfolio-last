@@ -8,6 +8,7 @@ const LINKS = [
   ['about', 'About me'],
   ['why', 'Why me'],
   ['projects', 'Projects'],
+  ['services', 'Services'],
   ['contact', 'Contact'],
 ];
 
@@ -46,6 +47,11 @@ export default function Nav() {
       if (!link || !pill) return;
       pill.style.width = `${link.offsetWidth}px`;
       pill.style.transform = `translateX(${link.offsetLeft}px)`;
+      // On narrow screens the menu scrolls sideways: keep the active link in view
+      const nav = pill.parentElement;
+      if (nav.scrollWidth > nav.clientWidth) {
+        nav.scrollTo({ left: link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2, behavior: 'smooth' });
+      }
     };
     place();
     // Re-measure whenever link sizes change (font swap, resize, mobile breakpoint)

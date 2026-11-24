@@ -27,7 +27,7 @@ export default function Contact() {
   return (
     <section ref={root} className="section contact" id="contact">
       <div className="container">
-        <p className="eyebrow" data-rise>(04) Contact</p>
+        <p className="eyebrow" data-rise>(05) Contact</p>
         <h2 className="contact-title">
           Let&apos;s build
           <br />

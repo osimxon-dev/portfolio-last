@@ -34,6 +34,32 @@ export const projects = [
   },
 ];
 
+// Services and prices. Prices are a starting point (USD): change them here.
+export const services = [
+  {
+    name: 'Landing page',
+    price: 40,
+    time: '2–3 days',
+    description: 'One clear page that explains your business and makes people message you.',
+    includes: ['Works on phone and desktop', 'Telegram / phone button', 'Fast, hosted for you', '1 round of changes'],
+  },
+  {
+    name: 'Business website',
+    price: 100,
+    time: '5–7 days',
+    description: 'A full site for a cafe, shop, course or studio: several pages, easy to find on Google.',
+    includes: ['Up to 5 pages', 'Menu, prices or gallery', 'Map, hours and contacts', 'Basic SEO, 2 rounds of changes'],
+    popular: true,
+  },
+  {
+    name: 'Web app',
+    price: 250,
+    time: '10–14 days',
+    description: 'A working product with users, forms and a dashboard or booking, built in React and Next.js.',
+    includes: ['Login and accounts', 'Database and admin panel', 'Deployed and tested', 'Short handover guide'],
+  },
+];
+
 // Contact links: shown in the Contact section and the footer.
 export const email = 'osimxon992@gmail.com';
 
