@@ -1,138 +1,99 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { gsap, useGSAP } from '@/lib/gsap';
-import { person, projects, contacts, email } from '@/data/site';
+import { useEffect, useRef } from 'react';
+import { contacts, person, projects, requestLink } from '@/data/site';
+import { Arrow } from './Icons';
+import LogoMark from './LogoMark';
 
-const MENU = [
-  ['#home', 'Home'],
-  ['#about', 'About me'],
-  ['#why', 'Why me'],
-  ['#projects', 'Projects'],
-  ['#contact', 'Contact'],
-];
-
+/**
+ * The last screen. On tall enough screens it sits fixed under the page and
+ * is uncovered like a curtain as the last section scrolls away.
+ */
 export default function Footer() {
   const root = useRef(null);
-  const [copied, setCopied] = useState(false);
 
-  useGSAP(
-    () => {
-      gsap.from('.footer-top > *', {
-        y: 40,
-        autoAlpha: 0,
-        stagger: 0.08,
-        duration: 1,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: '.footer-top', start: 'top 90%' },
-      });
-    },
-    { scope: root }
-  );
-
-  // Big name rises letter by letter once it enters the screen.
-  // IntersectionObserver + CSS transition, so it can't get stuck hidden.
-  const wordRef = useRef(null);
   useEffect(() => {
-    const el = wordRef.current;
-    if (!('IntersectionObserver' in window)) {
-      el.classList.add('is-in');
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add('is-in');
-          io.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const html = document.documentElement;
+    const fit = () => {
+      const h = root.current.offsetHeight;
+      const reveal = window.innerWidth >= 768 && h <= window.innerHeight;
+      html.classList.toggle('has-reveal', reveal);
+      html.style.setProperty('--foot-h', `${h}px`);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(root.current);
+    window.addEventListener('resize', fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', fit);
+      html.classList.remove('has-reveal');
+    };
   }, []);
 
-  const copyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      window.location.href = `mailto:${email}`;
-    }
-  };
-
-  const word = person.firstName.toUpperCase();
-
   return (
-    <footer ref={root} className="footer">
-      <div className="footer-top">
-        <div className="footer-col footer-lead">
-          <p className="footer-title">Have a project in mind? Write to me.</p>
-          <div className="footer-mail">
-            <a href={`mailto:${email}`}>{email}</a>
-            <button type="button" className="copy-btn" onClick={copyEmail} aria-live="polite">
-              {copied ? 'Copied' : 'Copy'}
-            </button>
+    <footer className="foot" id="contact" ref={root} aria-labelledby="foot-title">
+      <div className="wrap foot__in">
+        <p className="mono">(Have a project?)</p>
+        <div className="foot__top">
+          <h2 id="foot-title" className="foot__big">
+            Let’s build your website<span className="foot__dot">.</span>
+          </h2>
+          <a className="foot__circle" href={requestLink} target="_blank" rel="noopener noreferrer" data-magnetic="0.35" data-cursor="Let’s talk">
+            <span>
+              Write on
+              <br />
+              Telegram
+            </span>
+            <Arrow />
+          </a>
+        </div>
+
+        <div className="foot__cols">
+          <div>
+            <h3 className="mono">Contact</h3>
+            <ul>
+              {contacts.map((c) => (
+                <li key={c.label}>
+                  <a className="link" href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined} rel="noopener">
+                    {c.label === 'Email' ? c.value : `${c.label} ${c.value}`}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="mono">Live sites</h3>
+            <ul>
+              {projects.map((p) => (
+                <li key={p.name}>
+                  <a className="link" href={p.url} target="_blank" rel="noopener">
+                    {p.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="mono">This page</h3>
+            <ul>
+              <li><a className="link" href="#work">Work</a></li>
+              <li><a className="link" href="#try">Try it</a></li>
+              <li><a className="link" href="#prices">Prices</a></li>
+              <li><a className="link" href="#process">Process</a></li>
+            </ul>
+          </div>
+          <div className="foot__top-link">
+            <a className="link" href="#top">Back to top ↑</a>
           </div>
         </div>
 
-        <nav className="footer-col" aria-label="Footer">
-          <span className="footer-label">Menu</span>
-          <ul>
-            {MENU.map(([href, label]) => (
-              <li key={href}>
-                <a href={href}>{label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="footer-col">
-          <span className="footer-label">Contact</span>
-          <ul>
-            {contacts.map((c) => (
-              <li key={c.label}>
-                <a href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined} rel="noopener">
-                  {c.label} <span aria-hidden="true">↗</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="footer-col">
-          <span className="footer-label">Projects</span>
-          <ul>
-            {projects.map((p) => (
-              <li key={p.name}>
-                <a href={p.url} target="_blank" rel="noopener">
-                  {p.name} <span aria-hidden="true">↗</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <p ref={wordRef} className="footer-word" aria-hidden="true">
-        {word.split('').map((ch, i) => (
-          <span className="fw-mask" key={i}>
-            <span className="fw-letter" style={{ '--i': i }}>
-              {ch}
-            </span>
+        <div className="foot__bottom mono">
+          <span className="foot__brand">
+            <LogoMark />© 2026 {person.firstName} {person.lastName}
           </span>
-        ))}
-      </p>
-
-      <div className="footer-bottom">
-        <p>
-          © 2026 {person.firstName} {person.lastName}
-        </p>
-        <p className="footer-built">Built with Next.js and GSAP</p>
-        <a href="#home" className="to-top">
-          Back to top <span aria-hidden="true">↑</span>
-        </a>
+          <span>Product names and logos belong to their owners.</span>
+        </div>
       </div>
     </footer>
   );

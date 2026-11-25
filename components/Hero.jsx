@@ -2,185 +2,90 @@
 
 import { useRef } from 'react';
 import { gsap, useGSAP } from '@/lib/gsap';
-import { person } from '@/data/site';
-import HeroSides from './HeroSides';
+import { person, projects, requestLink } from '@/data/site';
+import { Arrow } from './Icons';
 
-/**
- * The hero is 400vh tall with a sticky stage inside. Scrolling through it
- * scrubs one timeline: the folder tilts, the front flap swings open toward
- * you, and three sheets slide out and fan apart.
- */
+const NAME = 'OSIMXON';
+
 export default function Hero() {
   const root = useRef(null);
 
   useGSAP(
     () => {
-      const wide = () => window.innerWidth >= 640;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const chars = gsap.utils.toArray('.hero__name .ch');
+        const fades = gsap.utils.toArray('[data-hero-fade]');
+        gsap.set(chars, { yPercent: 115 });
+        gsap.set(fades, { y: 30, autoAlpha: 0 });
 
-      gsap.set('.folder-front', { z: 14, transformOrigin: '50% 100%' });
-      gsap.set('.sheet-1', { z: 4 });
-      gsap.set('.sheet-2', { z: 6 });
-      gsap.set('.sheet-3', { z: 8 });
+        let played = false;
+        const intro = () => {
+          if (played) return;
+          played = true;
+          gsap
+            .timeline()
+            .to(chars, { yPercent: 0, duration: 1.2, ease: 'expo.out', stagger: 0.055 })
+            .to(fades, { y: 0, autoAlpha: 1, duration: 1, ease: 'expo.out', stagger: 0.08 }, 0.3);
+        };
+        if (document.documentElement.classList.contains('is-ready')) intro();
+        else window.addEventListener('app:ready', intro, { once: true });
+        const fallback = setTimeout(intro, 3500);
 
-      // Entrance
-      gsap.from('.folder-tilt', { y: 90, autoAlpha: 0, rotateX: -25, duration: 1.6, ease: 'expo.out', delay: 0.15 });
+        // On scroll the letters drift up at different speeds and the words fade
+        gsap
+          .timeline({ scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom top', scrub: true } })
+          .to(chars, { y: (i) => -(50 + (i % 3) * 45), ease: 'none' }, 0)
+          .to('.hero__mid', { y: -140, autoAlpha: 0, ease: 'none' }, 0)
+          .to('.hero__top', { autoAlpha: 0, ease: 'none' }, 0);
 
-      // Mouse tilt (desktop only)
-      const tiltX = gsap.quickTo('.folder-tilt', 'rotateY', { duration: 0.8, ease: 'power3.out' });
-      const tiltY = gsap.quickTo('.folder-tilt', 'rotateX', { duration: 0.8, ease: 'power3.out' });
-      const onMove = (e) => {
-        if (!window.matchMedia('(pointer: fine)').matches) return;
-        tiltX((e.clientX / window.innerWidth - 0.5) * 10);
-        tiltY(-(e.clientY / window.innerHeight - 0.5) * 7);
-      };
-      window.addEventListener('pointermove', onMove);
-
-      // Scroll: open the folder
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top top',
-          end: 'bottom bottom',
-          scrub: 0.8,
-          invalidateOnRefresh: true,
-        },
+        return () => {
+          clearTimeout(fallback);
+          window.removeEventListener('app:ready', intro);
+        };
       });
-
-      // Side cards and tags clear out as the folder starts to open
-      tl.to('.hero-side.left', { x: -90, autoAlpha: 0, duration: 0.8, ease: 'power2.in' }, 0.1)
-        .to('.hero-side.right', { x: 90, autoAlpha: 0, duration: 0.8, ease: 'power2.in' }, 0.1)
-        .to('.chips', { autoAlpha: 0, scale: 1.08, duration: 0.7, ease: 'power2.in' }, 0.05);
-
-      tl.to('.scroll-hint', { autoAlpha: 0, y: 16, duration: 0.4 }, 0)
-        .to('.hero-glow', { scale: 1.35, opacity: 1, duration: 2.4, ease: 'none' }, 0)
-        .to('.folder', { rotateX: 14, yPercent: 6, duration: 1.2, ease: 'none' }, 0)
-        .to('.folder-front', { rotateX: -76, duration: 1.8, ease: 'power2.in' }, 0.5)
-        .to('.folder-front .shape', { filter: 'brightness(0.45)', duration: 1.8 }, 0.5)
-        .to('.front-content', { autoAlpha: 0, duration: 0.9 }, 1.4)
-        .to('.sheet-1', { yPercent: -62, xPercent: () => (wide() ? -108 : -94), rotate: -7, duration: 1.8, ease: 'power2.out' }, 1.5)
-        .to('.sheet-2', { yPercent: -76, duration: 1.8, ease: 'power2.out' }, 1.65)
-        .to('.sheet-3', { yPercent: -62, xPercent: () => (wide() ? 108 : 94), rotate: 7, duration: 1.8, ease: 'power2.out' }, 1.8)
-        .to('.signature', { autoAlpha: 0, duration: 0.5 }, 3)
-        .to('.sheets-hint', { autoAlpha: 1, y: 0, duration: 0.5 }, 3.2)
-        .to({}, { duration: 0.8 });
-
-      return () => window.removeEventListener('pointermove', onMove);
     },
     { scope: root }
   );
 
   return (
-    <section ref={root} className="hero" id="home">
-      <div className="hero-stage">
-        <div className="hero-glow" aria-hidden="true" />
-        <HeroSides />
-
-        <div className="folder-scene">
-          <div className="folder-tilt">
-            <div className="folder">
-              <div className="folder-shadow" aria-hidden="true" />
-
-              {/* Back panel, tab on the right */}
-              <div className="folder-back">
-                <svg className="shape" viewBox="0 0 500 400" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="gBack" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor="#3b3b3b" />
-                      <stop offset=".35" stopColor="#232323" />
-                      <stop offset="1" stopColor="#141414" />
-                    </linearGradient>
-                    <linearGradient id="gBackEdge" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#fff" stopOpacity=".75" />
-                      <stop offset=".45" stopColor="#fff" stopOpacity=".18" />
-                      <stop offset="1" stopColor="#fff" stopOpacity=".05" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    fill="url(#gBack)"
-                    stroke="url(#gBackEdge)"
-                    strokeWidth="1.6"
-                    vectorEffect="non-scaling-stroke"
-                    d="M0,52 Q0,36 16,36 L316,36 C334,36 334,0 354,0 L484,0 Q500,0 500,16 L500,384 Q500,400 484,400 L16,400 Q0,400 0,384 Z"
-                  />
-                </svg>
-                <svg className="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M6 6l12 12M18 9v9H9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="back-mark">OD</span>
-              </div>
-
-              {/* Sheets that slide out */}
-              <a className="sheet sheet-1" href="#about">
-                <span className="sheet-label">01 — About me</span>
-                <strong className="sheet-title">
-                  {person.firstName} {person.lastName}
-                </strong>
-                <span className="sheet-text">
-                  {person.age} years old. {person.experienceYears} years of building for the web.
-                </span>
-                <span className="sheet-arrow" aria-hidden="true">↘</span>
-              </a>
-              <a className="sheet sheet-2" href="#why">
-                <span className="sheet-label">02 — Why me</span>
-                <strong className="sheet-title">Frontend, fully</strong>
-                <span className="sheet-text">HTML, CSS, JavaScript, React, Next.js, Python. Learning Node.js.</span>
-                <span className="sheet-arrow" aria-hidden="true">↘</span>
-              </a>
-              <a className="sheet sheet-3" href="#projects">
-                <span className="sheet-label">03 — Projects</span>
-                <strong className="sheet-title">3 live sites</strong>
-                <span className="sheet-text">DevConnect, Smena, Yonida.</span>
-                <span className="sheet-arrow" aria-hidden="true">↘</span>
-              </a>
-
-              {/* Front panel, tab in the middle */}
-              <div className="folder-front">
-                <svg className="shape" viewBox="0 0 500 400" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="gFront" x1="0" y1="0" x2=".3" y2="1">
-                      <stop offset="0" stopColor="#2e2e2e" />
-                      <stop offset=".5" stopColor="#1c1c1c" />
-                      <stop offset="1" stopColor="#101010" />
-                    </linearGradient>
-                    <linearGradient id="gFrontEdge" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#fff" stopOpacity=".5" />
-                      <stop offset=".5" stopColor="#fff" stopOpacity=".12" />
-                      <stop offset="1" stopColor="#fff" stopOpacity=".04" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    fill="url(#gFront)"
-                    stroke="url(#gFrontEdge)"
-                    strokeWidth="1.4"
-                    vectorEffect="non-scaling-stroke"
-                    d="M4,112 Q4,96 20,96 L196,96 C214,96 214,64 234,64 L478,64 Q492,64 492,78 L492,388 Q492,400 480,400 L16,400 Q4,400 4,388 Z"
-                  />
-                </svg>
-                <div className="front-content">
-                  <p className="roles">
-                    {person.roles.map((r, i) => (
-                      <span key={r}>
-                        {i > 0 && <i>|</i>}
-                        {r}
-                      </span>
-                    ))}
-                  </p>
-                  <h1 className="title">Portfolio</h1>
-                  <span className="year">2026</span>
-                </div>
-              </div>            </div>
-          </div>
-        </div>
-
-        <p className="scroll-hint">
-          <span>Scroll to open</span>
-          <span className="scroll-line" aria-hidden="true" />
+    <section className="hero" ref={root} aria-labelledby="hero-title">
+      <div className="wrap hero__top">
+        <p className="mono" data-hero-fade>
+          ({person.firstName} {person.lastName}, web developer)
         </p>
-        <p className="sheets-hint">Pick a sheet, or keep scrolling</p>
-        <p className="signature">
-          <b>{person.firstName.toUpperCase()}</b> <i>|</i> {person.lastName.toUpperCase()}
+        <p className="mono" data-hero-fade>
+          {person.age} years old — {person.experienceYears} years building — {projects.length} live sites
         </p>
       </div>
+
+      <div className="wrap hero__mid">
+        <p className="hero__lead" data-hero-fade>
+          I design and build websites for small businesses. <em>Clean, fast, and made to bring you customers.</em>
+        </p>
+        <div className="hero__cta" data-hero-fade>
+          <a className="btn btn--primary btn--lg" href={requestLink} target="_blank" rel="noopener noreferrer" data-magnetic="0.25">
+            Request a website <Arrow />
+          </a>
+          <a className="hero__scroll" href="#about">
+            <span>Scroll</span>
+            <i aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+
+      <h1 id="hero-title" className="hero__name" aria-label={`${person.firstName} ${person.lastName}, web developer`}>
+        <span className="hero__name-in" aria-hidden="true">
+          {NAME.split('').map((c, i) => (
+            <span className="ch" key={i}>
+              <span className="ch__in">{c}</span>
+            </span>
+          ))}
+          <span className="ch ch--dot">
+            <span className="ch__in">.</span>
+          </span>
+        </span>
+      </h1>
     </section>
   );
 }

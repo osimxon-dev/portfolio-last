@@ -2,44 +2,61 @@
 
 import { useEffect } from 'react';
 import Lenis from 'lenis';
-import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { gsap, ScrollTrigger, prefersReducedMotion } from '@/lib/gsap';
 
-/** Lenis smooth scrolling synced with GSAP ScrollTrigger, plus smooth #anchor links. */
+/**
+ * Smooth scrolling (Lenis) driven by GSAP's ticker, so pinned and scrubbed
+ * ScrollTriggers move in step with it. Also routes every #anchor link through it.
+ */
 export default function SmoothScroll() {
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let lenis = null;
-    const tick = (time) => lenis.raf(time * 1000);
+    let tick = null;
 
-    if (!reduce) {
-      lenis = new Lenis({ lerp: 0.1 });
+    if (!prefersReducedMotion()) {
+      lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 1 });
+      window.__lenis = lenis;
       lenis.on('scroll', ScrollTrigger.update);
+      tick = (time) => lenis.raf(time * 1000);
       gsap.ticker.add(tick);
       gsap.ticker.lagSmoothing(0);
+      // Hold still until the intro has finished
+      if (!document.documentElement.classList.contains('is-ready')) lenis.stop();
     }
 
+    const scrollTo = (target) => {
+      if (lenis) lenis.scrollTo(target, { duration: 1.4, force: true });
+      else window.scrollTo({ top: typeof target === 'number' ? target : target.getBoundingClientRect().top + window.scrollY });
+    };
+
     const onClick = (e) => {
-      const link = e.target.closest('a[href^="#"]');
-      if (!link) return;
-      const hash = link.getAttribute('href');
-      const target = hash === '#home' ? 0 : document.querySelector(hash);
-      if (target === null) return;
+      const a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute('href');
+      if (id === '#top') {
+        e.preventDefault();
+        scrollTo(0);
+        return;
+      }
+      const el = id.length > 1 && document.querySelector(id);
+      if (!el) return;
       e.preventDefault();
-      if (lenis) lenis.scrollTo(target, { duration: 1.6 });
-      else if (target === 0) window.scrollTo({ top: 0 });
-      else target.scrollIntoView();
-      history.replaceState(null, '', hash);
+      // The footer sits fixed under the page: its place is the very bottom
+      if (getComputedStyle(el).position === 'fixed') scrollTo(document.documentElement.scrollHeight);
+      else scrollTo(el);
     };
     document.addEventListener('click', onClick);
 
-    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    const refresh = () => ScrollTrigger.refresh();
+    window.addEventListener('app:ready', refresh);
+    document.fonts?.ready.then(refresh);
 
     return () => {
       document.removeEventListener('click', onClick);
-      if (lenis) {
-        gsap.ticker.remove(tick);
-        lenis.destroy();
-      }
+      window.removeEventListener('app:ready', refresh);
+      if (tick) gsap.ticker.remove(tick);
+      lenis?.destroy();
+      window.__lenis = undefined;
     };
   }, []);
 
